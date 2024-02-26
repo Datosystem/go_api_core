@@ -77,7 +77,9 @@ func (t *Table) AcceptPageBreak() map[string]func() bool {
 // Used for setting the headerFunc method
 func (t *Table) SetHeaderFunc(headerFunc func()) *Table {
 	t.headerFunc = headerFunc
-	t.headerFunc()
+	if t.headerFunc != nil {
+		t.headerFunc()
+	}
 	return t
 }
 

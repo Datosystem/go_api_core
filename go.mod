@@ -1,6 +1,6 @@
 module github.com/Datosystem/go_api_core
 
-go 1.21.0
+go 1.20
 
 replace gorm.io/gorm => github.com/Datosystem/gorm v1.23.1
 
