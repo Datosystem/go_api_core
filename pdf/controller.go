@@ -7,14 +7,13 @@ import (
 	"path"
 
 	"github.com/Datosystem/go_api_core/controller"
-	"github.com/Datosystem/go_api_core/model"
 	"github.com/gin-gonic/gin"
 	"github.com/phpdave11/gofpdf"
 )
 
-func AddPrintRoutes(ctrl controller.CRUDSController, name string, printFunc func(*gin.Context) *gofpdf.Fpdf, pathFunc, fileFunc func(*gin.Context) string) {
-	ctrl.AddRoute(http.MethodGet, name, model.PermissionsGet(ctrl.GetModel()), GetReadWriteHandler(printFunc, pathFunc, fileFunc))
-	ctrl.AddRoute(http.MethodPost, name, model.PermissionsPost(ctrl.GetModel()), GetWriteHandler(printFunc, pathFunc, fileFunc))
+func AddPrintRoutes(ctrl controller.CRUDSController, name string, printFunc func(*gin.Context) *gofpdf.Fpdf, pathFunc, fileFunc func(*gin.Context) string, permissions controller.FileSystemPermissions) {
+	ctrl.AddRoute(http.MethodGet, name, permissions.Get, GetReadWriteHandler(printFunc, pathFunc, fileFunc))
+	ctrl.AddRoute(http.MethodPost, name, permissions.Post, GetWriteHandler(printFunc, pathFunc, fileFunc))
 }
 
 func GetPrintHandler(printFunc func(*gin.Context) *gofpdf.Fpdf, fileName string) gin.HandlerFunc {

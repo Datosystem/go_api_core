@@ -91,3 +91,17 @@ func PermissionsDelete(model interface{}) PermissionFunc {
 		}
 	}
 }
+
+func PermissionsMerge(permissionFunctions ...PermissionFunc) PermissionFunc {
+	return func(c *gin.Context) message.Message {
+		for _, permissionFunc := range permissionFunctions {
+			if permissionFunc != nil {
+				msg := permissionFunc(c)
+				if msg != nil {
+					return msg
+				}
+			}
+		}
+		return nil
+	}
+}

@@ -28,16 +28,15 @@ type AddRouter interface {
 
 type GetModeler interface {
 	GetModel() any
+	GetModelType() reflect.Type
+
+	NewModel() any
+	NewSliceOfModel() any
 }
 
 type CRUDSController interface {
 	AddRouter
 	GetModeler
-
-	NewModel() any
-	NewSliceOfModel() any
-
-	GetModelType() reflect.Type
 
 	SetBasePath(basePath string)
 	SetEndpointIfAbsent(name string)

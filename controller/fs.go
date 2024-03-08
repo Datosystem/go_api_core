@@ -1,16 +1,20 @@
 package controller
 
 import (
+	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Datosystem/go_api_core/message"
 	"github.com/Datosystem/go_api_core/model"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func RemoveParentPaths(path string) string {
@@ -19,22 +23,48 @@ func RemoveParentPaths(path string) string {
 
 func Folder(pathFunc func(*gin.Context) string) func(*gin.Context) {
 	return func(c *gin.Context) {
-		path := RemoveParentPaths(pathFunc(c))
-		file := filepath.Join(path)
-		if !strings.HasPrefix(filepath.Clean(file), path) {
-			message.Forbidden(c).Abort(c)
-			return
+		type fileInfo struct {
+			NAME          string
+			PATH          string
+			DATE_MODIFIED time.Time
+			SIZE          float64
 		}
-		files, err := os.ReadDir(file)
+
+		filesDetailed := []fileInfo{}
+		files := []string{}
+
+		detailed := c.Query("detailed")
+
+		basePath := pathFunc(c)
+		err := filepath.Walk(basePath, func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				trimmedPath := strings.TrimPrefix(path, basePath+"/")
+				trimmedPathRight := strings.TrimRight(path, trimmedPath)
+				if detailed != "" {
+					filesDetailed = append(filesDetailed, fileInfo{
+						NAME:          trimmedPath,
+						PATH:          trimmedPathRight,
+						DATE_MODIFIED: info.ModTime(),
+						SIZE:          float64(info.Size()) / 1024,
+					})
+				} else {
+					files = append(files, trimmedPath)
+				}
+			}
+			return nil
+		})
+
 		if err != nil {
-			message.FolderNotFound(c).Abort(c)
-			return
+			fmt.Printf("Error walking the path %q: %v\n", basePath, err)
 		}
-		fileNames := []string{}
-		for _, f := range files {
-			fileNames = append(fileNames, f.Name())
+		if detailed != "" {
+			c.JSON(http.StatusOK, gin.H{"files": filesDetailed})
+		} else {
+			c.JSON(http.StatusOK, gin.H{"files": files})
 		}
-		c.JSON(http.StatusOK, gin.H{"files": fileNames})
 	}
 }
 
@@ -125,25 +155,109 @@ func DeleteFile(pathFunc, nameFunc func(*gin.Context) string) func(*gin.Context)
 	}
 }
 
+func CRDController() {
+	/*
+
+	 */
+
+	// TODO: Registrare funzioni che gestiscono GET all, GET singolo, POST, DELETE per la cartella specificata, le route disponibili sempre con la stringa CRD
+	// TODO: Aggiungere una PermissionFunc specificata dall'utente per ogni metodo (GET, POST e DELETE)
+	// TODO: Creare permission func customizzata in base alla risorsa padre (ottenibile da controller.GetModel)
+	// TODO: Controllare, nella permission func customizzata, se il modello ha la funzione DefaultConditions, se si eseguire una query COUNT con esse per determinare se l'utente ha accesso alla risorsa base
+}
+
+func CheckResourceAvailable(db *gorm.DB, mdl any) bool {
+	if condMdl, ok := mdl.(model.ConditionsModel); ok {
+		tx := db.Model(mdl)
+		table := mdl.(model.TableModel).TableName()
+		query, args := condMdl.DefaultConditions(db, table)
+		if query != "" {
+			tx = tx.Where("("+query+")", args...)
+		}
+		var count int64
+		tx.Count(&count)
+		if count == 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+func GetAllFileInFolder(pathFunc func(*gin.Context) string) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		path := RemoveParentPaths(pathFunc(c))
+		dirCon, err := os.ReadDir(path)
+		if err != nil {
+			message.Forbidden(c).Abort(c)
+			return
+		}
+		arrayNames := []string{}
+		for i := range dirCon {
+
+			if !dirCon[i].IsDir() {
+				name := dirCon[i].Name()
+				arrayNames = append(arrayNames, filepath.Join(path, name))
+			}
+		}
+		c.JSON(http.StatusOK, arrayNames)
+	}
+}
+
 type FileSystemPermissions struct {
-	Get     model.PermissionFunc
-	Post    model.PermissionFunc
-	GetFile model.PermissionFunc
-	Delete  model.PermissionFunc
+	Get        model.PermissionFunc
+	Post       model.PermissionFunc
+	GetFile    model.PermissionFunc
+	Delete     model.PermissionFunc
+	Conditions model.PermissionFunc
 }
 
 func FileSystem(ctrl AddRouter, apiPath string, filePath func(c *gin.Context) string, permissions FileSystemPermissions) {
-	ctrl.AddRoute(http.MethodGet, apiPath, permissions.Get, Folder(filePath))
-	ctrl.AddRoute(http.MethodPost, apiPath, permissions.Post, PostFile(filePath))
-	ctrl.AddRoute(http.MethodGet, apiPath+"/:fileName", permissions.GetFile, GetFile(filePath, func(c *gin.Context) string { return c.Param("fileName") }))
-	ctrl.AddRoute(http.MethodDelete, apiPath+"/:fileName", permissions.Delete, DeleteFile(filePath, func(c *gin.Context) string { return c.Param("fileName") }))
+	ctrl.AddRoute(http.MethodGet, apiPath, model.PermissionsMerge(permissions.Get, permissions.Conditions), Folder(filePath))
+	ctrl.AddRoute(http.MethodPost, apiPath, model.PermissionsMerge(permissions.Post, permissions.Conditions), PostFile(filePath))
+	ctrl.AddRoute(http.MethodGet, apiPath+"/:fileName", model.PermissionsMerge(permissions.GetFile, permissions.Conditions), GetFile(filePath, func(c *gin.Context) string { return c.Param("fileName") }))
+	ctrl.AddRoute(http.MethodDelete, apiPath+"/:fileName", model.PermissionsMerge(permissions.Delete, permissions.Conditions), DeleteFile(filePath, func(c *gin.Context) string { return c.Param("fileName") }))
 }
 
 func DefaultFileSystemPermissions(ctrl GetModeler) FileSystemPermissions {
-	return FileSystemPermissions{
-		Get:     model.PermissionsGet(ctrl.GetModel()),
-		Post:    model.PermissionsPost(ctrl.GetModel()),
-		GetFile: model.PermissionsGet(ctrl.GetModel()),
-		Delete:  model.PermissionsDelete(ctrl.GetModel()),
+	mdl := ctrl.GetModel()
+	fsPermissions := FileSystemPermissions{
+		Get:     model.PermissionsGet(mdl),
+		Post:    model.PermissionsPost(mdl),
+		GetFile: model.PermissionsGet(mdl),
+		Delete:  model.PermissionsDelete(mdl),
 	}
+	if condMdl, ok := mdl.(model.ConditionsModel); ok {
+		fsPermissions.Conditions = func(c *gin.Context) message.Message {
+			db := c.MustGet("db").(*gorm.DB)
+			primaries := map[string]interface{}{}
+			GetPathParams(c, ctrl.NewModel(), GetPrimaryFields(ctrl.GetModelType()), &primaries)
+
+			tx := db.Model(mdl).Where(primaries)
+			table := mdl.(model.TableModel).TableName()
+			query, args := condMdl.DefaultConditions(db, table)
+			if query != "" {
+				tx = tx.Where("("+query+")", args...)
+			}
+
+			var count int64
+			tx.Debug().Count(&count)
+
+			if count == 0 {
+				return message.ItemNotFound(c)
+			}
+			return nil
+		}
+	}
+	return fsPermissions
+}
+
+func DefaultPrintPermissions(ctrl GetModeler) FileSystemPermissions {
+	mdl := ctrl.GetModel()
+	fsPermissions := FileSystemPermissions{
+		Get:  model.PermissionsGet(mdl),
+		Post: model.PermissionsPost(mdl),
+	}
+	return fsPermissions
 }
