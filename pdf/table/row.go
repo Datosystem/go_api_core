@@ -136,6 +136,9 @@ func (r *Row) Add(value any, styles ...*Style) {
 			}
 			if style.inline && len(lines) == 1 {
 				r.table.pdf.CellFormat(strWd+(r.table.pdf.GetCellMargin()*2), fontHeight+style.Ln, line, "", 0, style.Align, style.Fill != nil, 0, "")
+				if r.child != nil {
+					r = r.child
+				}
 				r.cells[r.table.columnIndex].endX = r.table.pdf.GetX() + style.PaddingRight
 			} else {
 				r.table.pdf.CellFormat(r.table.ColumnSize(), fontHeight+style.Ln, line, "", 2, style.Align, false, 0, "")

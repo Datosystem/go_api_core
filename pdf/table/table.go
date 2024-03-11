@@ -34,7 +34,10 @@ func (t *Table) Headers() map[string]func(*gofpdf.Fpdf) {
 			}
 			curr := t.row
 			t.row = newRow(t)
-			t.row.parent = curr
+			if curr != nil {
+				t.row.parent = curr
+				t.row.parent.child = t.row
+			}
 		},
 	}
 }
@@ -377,7 +380,6 @@ func (t *Table) Next() *Table {
 	if t.columnIndex >= len(t.columns) {
 		t.nextRow()
 	} else if t.row.parent != nil {
-		t.row.parent.child = t.row
 		t.row = t.row.parent
 		t.pdf.SetPage(t.row.page)
 	}
