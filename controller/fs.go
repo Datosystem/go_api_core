@@ -27,7 +27,7 @@ func Folder(pathFunc func(*gin.Context) string) func(*gin.Context) {
 			NAME          string
 			PATH          string
 			DATE_MODIFIED time.Time
-			SIZE          float64
+			SIZE          string
 		}
 
 		filesDetailed := []fileInfo{}
@@ -43,12 +43,28 @@ func Folder(pathFunc func(*gin.Context) string) func(*gin.Context) {
 			if !info.IsDir() {
 				trimmedPath := strings.TrimPrefix(path, basePath+"/")
 				trimmedPathRight := strings.TrimRight(path, trimmedPath)
+
+				size := info.Size()
+
+				unit := "B"
+
+				if size >= 1<<30 {
+					size /= 1 << 30
+					unit = "GB"
+				} else if size >= 1<<20 {
+					size /= 1 << 20
+					unit = "MB"
+				} else if size >= 1<<10 {
+					size /= 1 << 10
+					unit = "KB"
+				}
+
 				if detailed != "" {
 					filesDetailed = append(filesDetailed, fileInfo{
 						NAME:          trimmedPath,
 						PATH:          trimmedPathRight,
 						DATE_MODIFIED: info.ModTime(),
-						SIZE:          float64(info.Size()) / 1024,
+						SIZE:          fmt.Sprintf("%d %s", size, unit),
 					})
 				} else {
 					files = append(files, trimmedPath)
