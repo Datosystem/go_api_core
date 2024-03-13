@@ -268,12 +268,3 @@ func DefaultFileSystemPermissions(ctrl GetModeler) FileSystemPermissions {
 	}
 	return fsPermissions
 }
-
-func DefaultPrintPermissions(ctrl GetModeler) FileSystemPermissions {
-	mdl := ctrl.GetModel()
-	fsPermissions := FileSystemPermissions{
-		Get:  model.PermissionsGet(mdl),
-		Post: model.PermissionsPost(mdl),
-	}
-	return fsPermissions
-}

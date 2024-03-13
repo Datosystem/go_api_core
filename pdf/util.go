@@ -4,12 +4,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"os"
-	"path"
 	"sync"
 
-	"github.com/Datosystem/go_api_core/controller"
-	"github.com/gin-gonic/gin"
 	"github.com/phpdave11/gofpdf"
 )
 
@@ -29,20 +25,6 @@ func LoadPngFromUrl(p *gofpdf.Fpdf, registerName, url string, wg *sync.WaitGroup
 	}
 	if wg != nil {
 		wg.Done()
-	}
-}
-
-func WritePdf(c *gin.Context, p *gofpdf.Fpdf, folder, file string) {
-	if p.Error() != nil {
-		controller.AbortWithError(c, p.Error())
-		return
-	}
-	if _, err := os.Stat(folder); os.IsNotExist(err) {
-		os.MkdirAll(folder, os.ModePerm)
-	}
-	err := p.OutputFileAndClose(path.Join(folder, file))
-	if err != nil {
-		controller.AbortWithError(c, p.Error())
 	}
 }
 
