@@ -176,18 +176,16 @@ func QueryMapRecursive(c *gin.Context, db *gorm.DB, args *QueryMapArgs, config Q
 			if info.Aggregate && pagination {
 				return message.ConflictingPaginationAndAggregation(c)
 			}
-			if !info.Aggregate {
-				if info.Distinct && args.Ord == "" {
-					order = ""
+			if info.Distinct && args.Ord == "" {
+				order = ""
+			}
+			if len(order) > 0 {
+				if !info.Aggregate && pagination {
+					tx = tx.Scopes(Count(&args.Count)).Scopes(Paginate(args.PagStart, args.PagEnd))
 				}
-				if len(order) > 0 {
-					if pagination {
-						tx = tx.Scopes(Count(&args.Count)).Scopes(Paginate(args.PagStart, args.PagEnd))
-					}
-					tx = tx.Order(order)
-				} else if pagination {
-					return message.ManualPagination(c)
-				}
+				tx = tx.Order(order)
+			} else if pagination {
+				return message.ManualPagination(c)
 			}
 		} else {
 			tx = tx.Where(args.Primaries)
