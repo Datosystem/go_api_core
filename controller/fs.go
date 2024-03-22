@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -103,6 +104,39 @@ func GetFile(pathFunc, nameFunc func(*gin.Context) string) func(*gin.Context) {
 			c.Header("Content-Type", "application/octet-stream")
 		}
 		c.File(file)
+	}
+}
+
+func GetFileOrFolder(pathFunc, nameFunc func(*gin.Context) string) func(*gin.Context) {
+	return func(c *gin.Context) {
+		path := RemoveParentPaths(pathFunc(c))
+		name := nameFunc(c)
+		file := filepath.Join(path, name)
+		if !strings.HasPrefix(filepath.Clean(file), path) {
+			message.Forbidden(c).Abort(c)
+			return
+		}
+
+		fileInfo, err := os.Stat(file)
+		if err != nil {
+			message.FileNotFound(c).Abort(c)
+			return
+		}
+
+		if fileInfo.IsDir() {
+			folderFunc := func(c *gin.Context) string {
+				return file
+			}
+			Folder(folderFunc)(c)
+		} else {
+			filePathFunc := func(c *gin.Context) string {
+				return path
+			}
+			fileNameFunc := func(c *gin.Context) string {
+				return name
+			}
+			GetFile(filePathFunc, fileNameFunc)(c)
+		}
 	}
 }
 
@@ -229,11 +263,28 @@ type FileSystemPermissions struct {
 	Conditions model.PermissionFunc
 }
 
-func FileSystem(ctrl AddRouter, apiPath string, filePath func(c *gin.Context) string, permissions FileSystemPermissions) {
+type FileSystemOptions struct {
+	SubFolder bool
+}
+
+func FileSystem(ctrl AddRouter, apiPath string, filePath func(c *gin.Context) string, permissions FileSystemPermissions, options FileSystemOptions) {
 	ctrl.AddRoute(http.MethodGet, apiPath, model.PermissionsMerge(permissions.Get, permissions.Conditions), Folder(filePath))
 	ctrl.AddRoute(http.MethodPost, apiPath, model.PermissionsMerge(permissions.Post, permissions.Conditions), PostFile(filePath))
-	ctrl.AddRoute(http.MethodGet, apiPath+"/:fileName", model.PermissionsMerge(permissions.GetFile, permissions.Conditions), GetFile(filePath, func(c *gin.Context) string { return c.Param("fileName") }))
-	ctrl.AddRoute(http.MethodDelete, apiPath+"/:fileName", model.PermissionsMerge(permissions.Delete, permissions.Conditions), DeleteFile(filePath, func(c *gin.Context) string { return c.Param("fileName") }))
+	if options.SubFolder {
+		ctrl.AddRoute(http.MethodGet, apiPath+"/:name", model.PermissionsMerge(permissions.GetFile, permissions.Conditions), GetFileOrFolder(filePath, func(c *gin.Context) string { return c.Param("name") }))
+	} else {
+		ctrl.AddRoute(http.MethodGet, apiPath+"/:name", model.PermissionsMerge(permissions.GetFile, permissions.Conditions), GetFile(filePath, func(c *gin.Context) string { return c.Param("name") }))
+	}
+	ctrl.AddRoute(http.MethodDelete, apiPath+"/:name", model.PermissionsMerge(permissions.Delete, permissions.Conditions), DeleteFile(filePath, func(c *gin.Context) string { return c.Param("name") }))
+
+	if options.SubFolder {
+		filePathFolder := func(c *gin.Context) string {
+			return path.Join(filePath(c), c.Param("name"))
+		}
+		ctrl.AddRoute(http.MethodPost, apiPath+"/:name", model.PermissionsMerge(permissions.Post, permissions.Conditions), PostFile(filePathFolder))
+		ctrl.AddRoute(http.MethodGet, apiPath+"/:name/:fileName", model.PermissionsMerge(permissions.GetFile, permissions.Conditions), GetFile(filePathFolder, func(c *gin.Context) string { return c.Param("fileName") }))
+		ctrl.AddRoute(http.MethodDelete, apiPath+"/:name/:fileName", model.PermissionsMerge(permissions.Delete, permissions.Conditions), DeleteFile(filePathFolder, func(c *gin.Context) string { return c.Param("fileName") }))
+	}
 }
 
 func DefaultFileSystemPermissions(ctrl GetModeler) FileSystemPermissions {
