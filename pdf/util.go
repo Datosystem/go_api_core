@@ -13,9 +13,8 @@ func LoadPngFromUrl(p *gofpdf.Fpdf, registerName, url string, wg *sync.WaitGroup
 	resp, err := http.Get(url)
 	if err == nil {
 		if resp.StatusCode == http.StatusOK {
-			//			p.RegisterImageReader(registerName, "png", resp.Body)
-			p.RegisterImageOptionsReader(registerName, gofpdf.ImageOptions{ImageType: "png"}, resp.Body)
-
+			tp := p.ImageTypeFromMime(resp.Header.Get("Content-Type"))
+			p.RegisterImageOptionsReader(registerName, gofpdf.ImageOptions{ImageType: tp}, resp.Body)
 		}
 		resp.Body.Close()
 	} else {
