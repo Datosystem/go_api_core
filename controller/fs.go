@@ -309,7 +309,7 @@ func DefaultFileSystemPermissions(ctrl GetModeler) FileSystemPermissions {
 			}
 
 			var count int64
-			tx.Debug().Count(&count)
+			tx.Count(&count)
 
 			if count == 0 {
 				return message.ItemNotFound(c)
