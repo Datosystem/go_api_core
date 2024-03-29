@@ -1,6 +1,7 @@
 package table
 
 import (
+	"math"
 	"strings"
 
 	"github.com/phpdave11/gofpdf"
@@ -204,9 +205,15 @@ func (t *Table) AddNext(value any, styles ...*Style) *Table {
 }
 
 func (t *Table) AddImage(imageNameStr string) *Table {
-	if t.pdf.GetImageInfo(imageNameStr) != nil {
+	if info := t.pdf.GetImageInfo(imageNameStr); info != nil {
 		if t.RowHeight() > 0 {
-			t.pdf.ImageOptions(imageNameStr, t.columnX(), t.pdf.GetY(), t.ColumnSize(), t.RowHeight(), true, gofpdf.ImageOptions{}, 0, "")
+			height := math.Min(info.Height(), t.RowHeight())
+			width := height * info.Width() / info.Height()
+			if width > t.ColumnSize() {
+				width = t.ColumnSize()
+				height = width * info.Height() / info.Width()
+			}
+			t.pdf.ImageOptions(imageNameStr, t.columnX(), t.pdf.GetY(), width, height, true, gofpdf.ImageOptions{}, 0, "")
 		} else {
 			t.pdf.ImageOptions(imageNameStr, t.columnX(), t.pdf.GetY(), t.ColumnSize(), 0, true, gofpdf.ImageOptions{}, 0, "")
 		}
