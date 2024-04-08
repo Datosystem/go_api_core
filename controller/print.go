@@ -99,7 +99,10 @@ func DefaultPrintPermissions(ctrl GetModeler) FileSystemPermissions {
 		printPermissions.Conditions = func(c *gin.Context) message.Message {
 			db := c.MustGet("db").(*gorm.DB)
 			primaries := map[string]interface{}{}
-			GetPathParams(c, ctrl.NewModel(), GetPrimaryFields(ctrl.GetModelType()), &primaries)
+			msg := GetPathParamsMsg(c, ctrl.NewModel(), GetPrimaryFields(ctrl.GetModelType()), &primaries)
+			if msg != nil {
+				return msg
+			}
 
 			tx := db.Model(mdl).Where(primaries)
 			table := mdl.(model.TableModel).TableName()

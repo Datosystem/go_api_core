@@ -85,22 +85,28 @@ func GetPathParams(c *gin.Context, model interface{}, fields []string, destinati
 	if c.IsAborted() {
 		return
 	}
+	msg := GetPathParamsMsg(c, model, fields, destination)
+	if msg != nil {
+		msg.Abort(c)
+	}
+}
+
+func GetPathParamsMsg(c *gin.Context, model interface{}, fields []string, destination interface{}) message.Message {
 	dest := reflect.ValueOf(destination).Elem()
 	mdl := reflect.ValueOf(model).Elem()
 	for _, field := range fields {
 		_, found := mdl.Type().FieldByName(field)
 		val := c.Param(field)
 		if len(val) == 0 || !found {
-			message.InvalidUrlParameter(c, field).Abort(c)
-			return
+			return message.InvalidUrlParameter(c, field)
 		}
 
 		msg := assignValue(c, mdl.FieldByName(field), field, val, dest)
 		if msg != nil {
-			msg.Abort(c)
-			return
+			return msg
 		}
 	}
+	return nil
 }
 
 func PathParamsToModels(c *gin.Context, modelType reflect.Type, fields []string, destination *[]interface{}) {
