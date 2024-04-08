@@ -55,25 +55,8 @@ func PrintReadHandler(pathFunc, fileFunc func(*gin.Context) string) gin.HandlerF
 		pdfPath := pathFunc(c)
 		pdfFile := fileFunc(c)
 
-		info, err := os.Stat(path.Join(pdfPath, pdfFile))
-		if AbortIfError(c, err) {
-			return
-		}
-
-		file, err := os.Open(path.Join(pdfPath, pdfFile))
-		if AbortIfError(c, err) {
-			return
-		}
-		defer file.Close()
-
-		fileBuffer := new(bytes.Buffer)
-		fileBuffer.ReadFrom(file)
-		c.DataFromReader(http.StatusOK, int64(fileBuffer.Len()), "application/pdf", fileBuffer, map[string]string{
-			"Content-Description":       "File Transfer",
-			"Content-Transfer-Encoding": "binary",
-			"Content-Disposition":       `attachment; filename="` + pdfFile + `"`,
-			"Data-Modifica":             info.ModTime().Format("2006-01-02 15:04:05"),
-		})
+		c.Header("Content-Disposition", `filename="`+pdfFile+`"`)
+		c.File(path.Join(pdfPath, pdfFile))
 	}
 }
 
