@@ -40,8 +40,7 @@ func LoadWebhooks(db *gorm.DB) {
 			}
 
 			go func(hook app.Webhook) {
-				controller.Recover(c)
-
+				defer controller.RecoverIfEnabled(c)
 				body := model
 				if len(hook.QUERY_ARGS) != 0 {
 					args := controller.QueryMapArgs{
