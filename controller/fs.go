@@ -42,6 +42,7 @@ func Folder(pathFunc func(*gin.Context) string) func(*gin.Context) {
 				return err
 			}
 			if !info.IsDir() {
+				path = strings.ReplaceAll(path, "\\", "/")
 				trimmedPath := strings.TrimPrefix(path, basePath+"/")
 				trimmedPathRight := strings.TrimRight(path, trimmedPath)
 
