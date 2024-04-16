@@ -131,7 +131,7 @@ func (t *Table) parseChildHTMLNodes(node *html.Node, element *PdfHTMLElement) {
 				case html.ElementNode:
 					childElement.Data = childNode.Data
 					switch childNode.Data {
-					case "b":
+					case "b", "strong":
 						childElement.Style.inline = true
 						childElement.Style.Format = "B"
 					case "center":
