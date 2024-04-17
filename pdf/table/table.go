@@ -9,15 +9,16 @@ import (
 )
 
 type Table struct {
-	pdf         *gofpdf.Fpdf
-	startX      float64
-	endX        float64
-	row         *Row
-	columns     []Column
-	columnIndex int
-	headerFunc  func()
-	footerFunc  func()
-	onPageBreak func()
+	pdf            *gofpdf.Fpdf
+	startX         float64
+	endX           float64
+	row            *Row
+	columns        []Column
+	columnIndex    int
+	headerFunc     func()
+	footerFunc     func()
+	onPageBreak    func()
+	afterPageBreak func()
 }
 
 // Calls the tableHeader method if exists
@@ -38,6 +39,9 @@ func (t *Table) Headers() map[string]func(*gofpdf.Fpdf) {
 			if curr != nil {
 				t.row.parent = curr
 				t.row.parent.child = t.row
+			}
+			if t.afterPageBreak != nil {
+				t.afterPageBreak()
 			}
 		},
 	}
@@ -248,7 +252,8 @@ func (t *Table) AddHTML(htmlStr string, styles ...*Style) *Table {
 	}
 
 	// TODO: Handle padding for child elements
-	t.parseHTMLNode(node, &element)
+	// Parses the body into element
+	t.parseHTMLNode(node.FirstChild.LastChild, &element)
 
 	element.Height += columnStyle.PaddingBottom
 
@@ -258,11 +263,9 @@ func (t *Table) AddHTML(htmlStr string, styles ...*Style) *Table {
 	fRe, fGr, fBl := t.pdf.GetDrawColor()
 	tRe, tGr, tBl := t.pdf.GetTextColor()
 
-	var yVariation float64
+	t.addHTMLElement(&element)
 
-	t.addHTMLElement(&element, &yVariation)
-
-	t.onPageBreak = nil
+	t.afterPageBreak = nil
 
 	if cm != 0 {
 		t.pdf.SetCellMargin(cm)
@@ -270,18 +273,15 @@ func (t *Table) AddHTML(htmlStr string, styles ...*Style) *Table {
 
 	t.pdf.SetDrawColor(fRe, fGr, fBl)
 	t.pdf.SetTextColor(tRe, tGr, tBl)
-	if yVariation == 0 {
-		t.pdf.SetXY(element.OffsetX, element.OffsetY+element.Height)
-	} else {
-		t.pdf.SetX(element.OffsetX)
-	}
+	t.pdf.SetX(element.OffsetX)
 	t.row.cells[t.columnIndex].endY = t.pdf.GetY()
 	return t
 }
 
-func (t *Table) addHTMLElement(element *PdfHTMLElement, yVariation *float64) {
-	t.onPageBreak = func() {
-		*yVariation += element.OffsetY
+func (t *Table) addHTMLElement(element *PdfHTMLElement) (newPage bool) {
+	t.afterPageBreak = func() {
+		// TODO: Rimuovere la Y dell'header della pagina successiva
+		newPage = true
 	}
 	if element.Data == "text" {
 		if element.Text != "" {
@@ -344,10 +344,15 @@ func (t *Table) addHTMLElement(element *PdfHTMLElement, yVariation *float64) {
 		}
 
 		// Add children
+		var yVariation float64
 		for _, child := range element.Children {
 			child.OffsetX += element.OffsetX
-			child.OffsetY += element.OffsetY - *yVariation
-			t.addHTMLElement(child, yVariation)
+			child.OffsetY += element.OffsetY - yVariation
+			np := t.addHTMLElement(child)
+			if np {
+				yVariation += child.OffsetY - t.row.startY
+				newPage = true
+			}
 		}
 
 		// Reset previous styles
@@ -355,6 +360,7 @@ func (t *Table) addHTMLElement(element *PdfHTMLElement, yVariation *float64) {
 		t.pdf.SetDrawColor(dR, dG, dB)
 		t.pdf.SetTextColor(tR, tG, tB)
 	}
+	return
 }
 
 func (t *Table) DrawBorder(borderStr string, x, y, w, h float64) {
