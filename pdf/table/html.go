@@ -166,7 +166,7 @@ func (t *Table) parseChildHTMLNodes(node *html.Node, element *PdfHTMLElement) {
 				if childNode.Type == html.TextNode {
 					if childNode.Data != "" {
 						relY += childElement.Height
-						relX = element.OffsetX
+						relX = 0
 						continue
 					}
 				}
