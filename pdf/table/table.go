@@ -355,6 +355,10 @@ func (t *Table) addHTMLElement(element *PdfHTMLElement) (newPage bool) {
 			}
 		}
 
+		if t.pdf.GetY() < element.OffsetY+element.Height-yVariation {
+			t.pdf.SetY(element.OffsetY + element.Height)
+		}
+
 		// Reset previous styles
 		t.pdf.SetFillColor(fR, fG, fB)
 		t.pdf.SetDrawColor(dR, dG, dB)
