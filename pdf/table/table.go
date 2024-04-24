@@ -76,6 +76,9 @@ func (t *Table) AcceptPageBreak() map[string]func() bool {
 				t.pdf.SetPage(t.row.page)
 				t.pdf.SetXY(t.columnX(), t.row.startY)
 				t.pdf.SetFontSize(fontSize)
+				if t.afterPageBreak != nil {
+					t.afterPageBreak()
+				}
 				return false
 			}
 		},
@@ -355,9 +358,7 @@ func (t *Table) addHTMLElement(element *PdfHTMLElement) (newPage bool) {
 			}
 		}
 
-		if t.pdf.GetY() < element.OffsetY+element.Height-yVariation {
-			t.pdf.SetY(element.OffsetY + element.Height)
-		}
+		t.pdf.SetY(element.OffsetY + element.Height - yVariation)
 
 		// Reset previous styles
 		t.pdf.SetFillColor(fR, fG, fB)
