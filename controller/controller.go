@@ -329,10 +329,8 @@ func WriteDataWithCount(c *gin.Context, pagStart, pagEnd string, data any, count
 								v, _ := marshaler.MarshalJSON()
 								row = append(row, strings.TrimSuffix(strings.TrimPrefix(string(v), "\""), "\""))
 							} else if stringer, ok := f.Interface().(fmt.Stringer); ok {
-								fmt.Println(stringer.String())
 								row = append(row, stringer.String())
 							} else {
-								fmt.Println(f.Interface())
 								row = append(row, fmt.Sprintf("%v", f.Interface()))
 							}
 						} else {
