@@ -21,17 +21,22 @@ type DynamicModel struct {
 	Relations *map[string]NestedModel
 }
 
+type ComputedField struct {
+	Fn func(*gin.Context, *gorm.DB, *ModelInfo, *map[string]any) message.Message
+}
+
 type ModelInfo struct {
-	Select     []string
-	SelectArgs []any
-	Fields     []reflect.StructField
-	Schema     *schema.Schema
-	Table      string
-	Order      string
-	Relations  map[string]*params.Conditions
-	Nested     map[string]NestedModel
-	Aggregate  bool
-	Distinct   bool
+	Select         []string
+	SelectArgs     []any
+	Fields         []reflect.StructField
+	ComputedFields []ComputedField
+	Schema         *schema.Schema
+	Table          string
+	Order          string
+	Relations      map[string]*params.Conditions
+	Nested         map[string]NestedModel
+	Aggregate      bool
+	Distinct       bool
 }
 
 type NestedModel struct {
@@ -132,7 +137,7 @@ func ModelToTableNames(stmt *string, modelSchema *schema.Schema) []string {
 	return relations
 }
 
-func GetModelInfo(c *gin.Context, modelSchema *schema.Schema, selects string, computedFields map[string]string, modelInfo *ModelInfo, args *QueryMapArgs) message.Message {
+func GetModelInfo(c *gin.Context, modelSchema *schema.Schema, selects string, modelInfo *ModelInfo, args *QueryMapArgs) message.Message {
 	modelInfo.Table = strings.TrimSpace(modelInfo.Schema.Table)
 	if strings.HasSuffix(modelInfo.Table, ")") {
 		modelInfo.Table = queryTableName
@@ -281,7 +286,15 @@ func GetModelInfo(c *gin.Context, modelSchema *schema.Schema, selects string, co
 					if len(funcName) == 0 {
 						funcName = "Compute" + field.Name
 					}
-					computedFields[strings.Join(pieces, ".")] = funcName
+					mdl := reflect.New(relSchema.ModelType)
+					fn := mdl.MethodByName(funcName)
+					if fn.IsValid() {
+						info.ComputedFields = append(info.ComputedFields, ComputedField{
+							Fn: fn.Interface().(func(*gin.Context, *gorm.DB, *ModelInfo, *map[string]any) message.Message),
+						})
+					} else {
+						return message.InvalidField(c, field.Name)
+					}
 					// Here, instead of funcName, I would include the entire function
 				} else if funcName, ok := field.StructField.Tag.Lookup("query"); ok {
 					field.StructField.Tag = reflect.StructTag(strings.TrimPrefix(string(field.StructField.Tag), `gorm:"-"`))

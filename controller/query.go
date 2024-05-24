@@ -59,9 +59,8 @@ func QueryMap(c *gin.Context, db *gorm.DB, args *QueryMapArgs, config QueryMapCo
 	// Obtain all the relations from the arguments
 	// TODO: Extract and validate relations here
 
-	computedFields := map[string]string{}
 	args.Info = ModelInfo{Select: []string{}, SelectArgs: []any{}, Relations: map[string]*params.Conditions{}, Nested: map[string]NestedModel{}, Schema: modelSchema}
-	msg := GetModelInfo(c, modelSchema, getSelect(args.Sel, args.Rel), computedFields, &args.Info, args)
+	msg := GetModelInfo(c, modelSchema, getSelect(args.Sel, args.Rel), &args.Info, args)
 	if msg != nil {
 		return msg
 	}
@@ -261,6 +260,20 @@ func QueryMapRecursive(c *gin.Context, db *gorm.DB, args *QueryMapArgs, config Q
 
 		*result = append(*result, rowMap)
 	}
+
+	// Computed fields
+
+	for _, computedField := range info.ComputedFields {
+		for i := range *result {
+			item := (*result)[i]
+			msg := computedField.Fn(c, db, info, &item)
+			if msg != nil {
+				return msg
+			}
+		}
+	}
+
+	//
 
 	type SetContainer struct {
 		keyMap map[string][]int
@@ -499,43 +512,6 @@ func keySetToStr(table string, refs []*schema.Reference, vals any) string {
 		}
 	}
 	return result
-}
-
-func HandleComputedFields(c *gin.Context, computedFields map[string]string, data reflect.Value) {
-	if c.IsAborted() {
-		return
-	}
-	for field, funcName := range computedFields {
-		pieces := strings.Split(field, ".")
-		firstPiece := pieces[0]
-		if len(pieces) == 1 {
-			if data.Kind() == reflect.Slice {
-				for i := 0; i < data.Len(); i++ {
-					item := data.Index(i)
-					item.MethodByName(funcName).Call([]reflect.Value{item})
-				}
-			} else {
-				data.Elem().MethodByName(funcName).Call([]reflect.Value{data})
-				data.Addr().MethodByName(funcName).Call([]reflect.Value{data})
-				data.MethodByName(funcName).Call([]reflect.Value{data})
-			}
-		} else {
-			val := data.FieldByName(firstPiece)
-			if val.Kind() == reflect.Ptr {
-				val = val.Elem()
-			}
-			cf := map[string]string{}
-			cf[strings.Join(pieces[1:], ".")] = funcName
-			if val.Kind() == reflect.Slice {
-				for i := 0; i < val.Len(); i++ {
-					val = val.Index(i)
-					HandleComputedFields(c, cf, val)
-				}
-			} else {
-				HandleComputedFields(c, cf, val)
-			}
-		}
-	}
 }
 
 func parseSel(sel string) string {
