@@ -443,8 +443,9 @@ func (t *Table) columnX(colIndex ...int) float64 {
 		index = colIndex[0]
 	}
 	x := t.originalColumnX(index)
-	if t.columns[index].Style != nil {
-		x += t.columns[index].Style.PaddingLeft
+	style := t.getStyle()
+	if style != nil {
+		x += style.PaddingLeft
 	}
 	return x
 }

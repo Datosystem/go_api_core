@@ -144,7 +144,9 @@ func (t *Table) parseChildHTMLNodes(node *html.Node, element *PdfHTMLElement) {
 					childElement.Data = "text"
 					childElement.Style.inline = true
 				}
-				if !childElement.Style.inline {
+				if childElement.Style.inline {
+					childElement.Width -= childElement.OffsetX
+				} else {
 					childElement.OffsetX = 0
 					childElement.OffsetY = 0
 					if len(element.Children) > 0 {
@@ -167,6 +169,9 @@ func (t *Table) parseChildHTMLNodes(node *html.Node, element *PdfHTMLElement) {
 					if childNode.Data != "" {
 						relY += childElement.Height
 						relX = 0
+						if element.Style.inline {
+							relX = element.OffsetX * -1
+						}
 						continue
 					}
 				}
