@@ -473,7 +473,7 @@ func keySetToStr(table string, refs []*schema.Reference, vals any) string {
 			if key == "" {
 				hasNull = true
 			} else {
-				keys = append(keys, key)
+				keys = append(keys, strings.ReplaceAll(key, "'", "''"))
 			}
 		}
 
@@ -482,7 +482,7 @@ func keySetToStr(table string, refs []*schema.Reference, vals any) string {
 			if hasNull {
 				result += "("
 			}
-			result += field + " IN (" + strings.Join(keys, ",") + ")"
+			result += field + " IN ('" + strings.Join(keys, "','") + "')"
 		}
 		if hasNull {
 			if len(keys) != 0 {
