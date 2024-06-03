@@ -52,7 +52,7 @@ func (t *Table) parseHTMLNode(node *html.Node, element *PdfHTMLElement) {
 		element.Width = t.pdf.GetStringWidth(lines[0])
 		element.Text = lines[0]
 		_, fontHeight := t.pdf.GetFontSize()
-		element.Height = fontHeight
+		element.Height = fontHeight + element.Style.Ln
 	} else {
 		element.Data = node.Data
 
