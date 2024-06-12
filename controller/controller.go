@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -230,7 +231,7 @@ func WriteQueryMapResult(c *gin.Context, args *QueryMapArgs) {
 					for key := range args.Info.Nested {
 						data, err := json.Marshal(item[key])
 						if err != nil {
-							fmt.Println(err)
+							log.Println(err)
 						}
 						row = append(row, string(data))
 					}

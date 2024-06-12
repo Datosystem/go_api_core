@@ -1,7 +1,7 @@
 package table
 
 import (
-	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -198,7 +198,7 @@ func (t *Table) parseHTMLAttributes(node *html.Node, element *PdfHTMLElement) {
 						for _, color := range rgb {
 							c, err := strconv.Atoi(strings.TrimSpace(color))
 							if err != nil {
-								fmt.Println("AddHTML: error parsing background color", err)
+								log.Println("AddHTML: error parsing background color", err)
 								continue
 							}
 							*element.Style.Fill = append(*element.Style.Fill, c)
@@ -212,7 +212,7 @@ func (t *Table) parseHTMLAttributes(node *html.Node, element *PdfHTMLElement) {
 						for _, color := range rgb {
 							c, err := strconv.Atoi(strings.TrimSpace(color))
 							if err != nil {
-								fmt.Println("AddHTML: error parsing color", err)
+								log.Println("AddHTML: error parsing color", err)
 								continue
 							}
 							*element.Style.Color = append(*element.Style.Color, c)

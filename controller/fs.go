@@ -76,7 +76,7 @@ func Folder(pathFunc func(*gin.Context) string) func(*gin.Context) {
 		})
 
 		if err != nil {
-			fmt.Printf("Error walking the path %q: %v\n", basePath, err)
+			log.Printf("Error walking the path %q: %v\n", basePath, err)
 		}
 		if detailed != "" {
 			c.JSON(http.StatusOK, gin.H{"files": filesDetailed})
