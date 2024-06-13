@@ -333,7 +333,7 @@ func CheckUnique(c *gin.Context, db *gorm.DB, model interface{}, primary string,
 	if count > 0 {
 		str := ""
 		for i := 0; i < len(args); i++ {
-			str += fields[i] + " " + fmt.Sprint(args[i])
+			str += fields[i] + " " + fmt.Sprint(reflect.Indirect(reflect.ValueOf(args[i])).Interface())
 		}
 		return message.DuplicateUnique(c, tx.Statement.Table, str)
 	} else {
