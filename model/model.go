@@ -66,14 +66,14 @@ type BaseModel struct {
 }
 
 func (BaseModel) QueryDISPLAY_NAME(c *gin.Context, model interface{}, modelSchema *schema.Schema, table string, nested bool, query *string, args *[]any, rels map[string]*params.Conditions) message.Message {
+	var sel []string
 	if m, ok := model.(DisplayNamePatternModel); ok {
 		pattern := m.DisplayNamePattern()
-		sel, relSet := DisplayPatternToSql(pattern, modelSchema, table, nested)
+		var relSet map[string]*params.Conditions
+		sel, relSet = DisplayPatternToSql(pattern, modelSchema, table, nested)
 		for rel := range relSet {
 			rels[rel] = &params.Conditions{}
 		}
-		*query = "LTRIM(RTRIM(" + sel + "))"
-		return nil
 	} else {
 		if m, ok := model.(DisplayNameRelationsModel); ok {
 			for _, rel := range m.DisplayNameRelations() {
@@ -127,49 +127,55 @@ func (BaseModel) QueryDISPLAY_NAME(c *gin.Context, model interface{}, modelSchem
 			return message.DisplayNameNotSupported(c)
 		}
 
-		var sel string
 		if len(fields) > 0 {
 			t := fields[0].Table
 			for i := range fields {
 				if fields[i].Table != t {
-					sel += "+ ' - ' +"
+					sel = append(sel, "' - '")
 				}
-				sel += DisplayFieldToSql(fields[i].Table, fields[i].Field, i > 0)
+				sel = append(sel, DisplayFieldToSql(fields[i].Table, fields[i].Field))
 			}
 		}
-		*query = "LTRIM(RTRIM(" + sel + "))"
-		return nil
 	}
+	*query = "LTRIM(RTRIM("
+	if len(sel) > 1 {
+		*query += "CONCAT(" + strings.Join(sel, ",") + ")"
+	} else {
+		*query += sel[0]
+	}
+	*query += "))"
+	return nil
 }
 
-func DisplayFieldToSql(table string, field *schema.Field, concat bool) string {
-	sel := "CASE WHEN " + table + "." + field.DBName + " IS NOT NULL"
+func DisplayFieldToSql(table string, field *schema.Field) string {
+	var sel string
+	sel += "CASE WHEN " + table + "." + field.DBName + " IS NOT NULL"
 	if field.DataType == schema.String {
 		sel += " AND LEN(" + table + "." + field.DBName + ") > 0"
 	}
-	sel += " THEN"
-	if concat {
-		sel = " + " + sel + " ' ' + "
-	}
-	if field.DataType == schema.String {
-		sel += table + "." + field.DBName
-	} else {
-		sel += " CAST(" + table + "." + field.DBName + " AS NVARCHAR(MAX))"
+	sel += " THEN "
+	fieldName := table + "." + field.DBName
+	switch field.DataType {
+	case schema.String:
+		sel += fieldName
+	case "datetime":
+		sel += "CONCAT(CONVERT(nvarchar, SWITCHOFFSET(" + fieldName + ", DATEPART(TZOFFSET, " + fieldName + " AT TIME ZONE 'Central European Standard Time')),103),' ',LEFT(CONVERT(nvarchar, SWITCHOFFSET(" + fieldName + ", DATEPART(TZOFFSET, " + fieldName + " AT TIME ZONE 'Central European Standard Time')),8),5))"
+	case "date":
+		sel += "CONVERT(nvarchar, SWITCHOFFSET(" + fieldName + ", DATEPART(TZOFFSET, " + fieldName + " AT TIME ZONE 'Central European Standard Time')),103)"
+	default:
+		sel += "CAST(" + fieldName + " AS NVARCHAR(MAX))"
 	}
 	return sel + " ELSE '' END"
 }
 
-func DisplayPatternToSql(pattern string, modelSchema *schema.Schema, table string, nested bool) (string, map[string]*params.Conditions) {
+func DisplayPatternToSql(pattern string, modelSchema *schema.Schema, table string, nested bool) ([]string, map[string]*params.Conditions) {
 	var startIndex int
-	var sel string
+	sel := []string{}
 	relSet := map[string]*params.Conditions{}
 	for i, char := range pattern {
 		if string(char) == "{" {
 			if i-startIndex > 0 {
-				if len(sel) > 0 {
-					sel += "+"
-				}
-				sel += "'" + pattern[startIndex:i] + "'"
+				sel = append(sel, "'"+pattern[startIndex:i]+"'")
 			}
 			startIndex = i + 1
 		} else if string(char) == "}" {
@@ -193,18 +199,12 @@ func DisplayPatternToSql(pattern string, modelSchema *schema.Schema, table strin
 					t = strings.ReplaceAll(rel, ".", "__")
 				}
 			}
-			if len(sel) > 0 {
-				sel += "+"
-			}
-			sel += DisplayFieldToSql(t, relSchema.LookUpField(pieces[len(pieces)-1]), false)
+			sel = append(sel, DisplayFieldToSql(t, relSchema.LookUpField(pieces[len(pieces)-1])))
 			startIndex = i + 1
 		}
 	}
 	if len(pattern)-startIndex > 0 {
-		if len(sel) > 0 {
-			sel += "+"
-		}
-		sel += "'" + pattern[startIndex:] + "'"
+		sel = append(sel, "'"+pattern[startIndex:]+"'")
 	}
 	return sel, relSet
 }
