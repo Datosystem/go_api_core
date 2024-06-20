@@ -139,7 +139,7 @@ func (BaseModel) QueryDISPLAY_NAME(c *gin.Context, model interface{}, modelSchem
 	}
 	*query = "LTRIM(RTRIM("
 	if len(sel) > 1 {
-		*query += "CONCAT(" + strings.Join(sel, ",") + ")"
+		*query += "CONCAT(" + strings.Join(sel, ",' ',") + ")"
 	} else {
 		*query += sel[0]
 	}
