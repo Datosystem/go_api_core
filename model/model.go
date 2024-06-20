@@ -161,7 +161,7 @@ func DisplayFieldToSql(table string, field *schema.Field) string {
 	case "datetime":
 		sel += "CONCAT(CONVERT(nvarchar, SWITCHOFFSET(" + fieldName + ", DATEPART(TZOFFSET, " + fieldName + " AT TIME ZONE 'Central European Standard Time')),103),' ',LEFT(CONVERT(nvarchar, SWITCHOFFSET(" + fieldName + ", DATEPART(TZOFFSET, " + fieldName + " AT TIME ZONE 'Central European Standard Time')),8),5))"
 	case "date":
-		sel += "CONVERT(nvarchar, SWITCHOFFSET(" + fieldName + ", DATEPART(TZOFFSET, " + fieldName + " AT TIME ZONE 'Central European Standard Time')),103)"
+		sel += "CONVERT(nvarchar, " + fieldName + ",103)"
 	default:
 		sel += "CAST(" + fieldName + " AS NVARCHAR(MAX))"
 	}
