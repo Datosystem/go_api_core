@@ -47,7 +47,7 @@ func (t *Table) parseHTMLNode(node *html.Node, element *PdfHTMLElement) {
 		lines := t.pdf.SplitText(node.Data, availableWidth)
 		node.Data = ""
 		if len(lines) > 1 {
-			node.Data = strings.Join(lines[1:], "")
+			node.Data = strings.Join(lines[1:], " ")
 		}
 		element.Width = t.pdf.GetStringWidth(lines[0])
 		element.Text = lines[0]
