@@ -2,6 +2,7 @@ package table
 
 import (
 	"math"
+	"reflect"
 	"strings"
 
 	"github.com/phpdave11/gofpdf"
@@ -190,6 +191,9 @@ func (t *Table) SetRowHeight(rowHeight float64) *Table {
 
 // Add the specified value and style
 func (t *Table) Add(value any, styles ...*Style) *Table {
+	if reflect.TypeOf(value).String() == "string" {
+		value = removeHighCodePoints(value.(string))
+	}
 	t.row.Add(value, styles...)
 	t.row.cells[t.columnIndex].endY = t.pdf.GetY()
 	return t
@@ -494,4 +498,14 @@ func (t *Table) Hr() *Table {
 
 func New(p *gofpdf.Fpdf, x1 float64, x2 float64) *Table {
 	return &Table{pdf: p, startX: x1, endX: x2}
+}
+
+func removeHighCodePoints(s string) string {
+	var result []rune
+	for _, r := range s {
+		if r <= 65536 { // Check if the code point is below or equal to 65536
+			result = append(result, r)
+		}
+	}
+	return string(result)
 }
