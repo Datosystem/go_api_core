@@ -153,6 +153,13 @@ func MissingRequiredParameter(c *gin.Context, name, in string) Message {
 	}
 }
 
+func MissingRequiredParameterForQueryField(c *gin.Context, name, field string) Message {
+	return &Msg{
+		Message: GetPrinter(c).Sprintf("Missing required parameter %s in query (eg. &%s=3) for query field %s", name, field),
+		Status:  http.StatusConflict,
+	}
+}
+
 func MissingForeignKey(c *gin.Context, key, rel string) Message {
 	return &Msg{
 		Message: GetPrinter(c).Sprintf("Could not find the foreign key %s, required by the relation %s, in its parent object.", key, rel),
