@@ -167,6 +167,13 @@ func MissingForeignKey(c *gin.Context, key, rel string) Message {
 	}
 }
 
+func CannotCreatePrint(c *gin.Context) Message {
+	return &Msg{
+		Message: GetPrinter(c).Sprintf("Could not print the warehouseman order print when the order has not been accepted."),
+		Status:  http.StatusConflict,
+	}
+}
+
 // 422
 func Unprocessable(c *gin.Context) Message {
 	return &Msg{
