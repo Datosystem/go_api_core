@@ -243,6 +243,11 @@ func (t *Table) parseHTMLAttributes(node *html.Node, element *PdfHTMLElement) {
 					case "right":
 						element.Style.Align = "R"
 					}
+				case "font-size":
+					val = strings.ReplaceAll(val, " ", "")
+					if strings.HasSuffix(val, "px") {
+						element.Style.Size, _ = strconv.ParseFloat(strings.TrimSuffix(val, "px"), 64)
+					}
 				}
 			}
 		}
