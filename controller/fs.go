@@ -201,7 +201,13 @@ func DeleteFile(pathFunc, nameFunc func(*gin.Context) string) func(*gin.Context)
 			message.Forbidden(c).Abort(c)
 			return
 		}
-		os.Remove(file)
+		err := os.Remove(file)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				AbortWithError(c, err)
+				return
+			}
+		}
 		message.Ok(c).JSON(c)
 	}
 }
