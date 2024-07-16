@@ -162,8 +162,8 @@ func PostFile(pathFunc func(*gin.Context) string) func(*gin.Context) {
 					return
 				}
 				newFileName := file.Filename
-
-				if err := c.SaveUploadedFile(file, filepath.Join(path, newFileName)); err != nil {
+				err = c.SaveUploadedFile(file, filepath.Join(path, newFileName))
+				if err != nil {
 					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 						"message": "Unable to save the file",
 					})
@@ -180,8 +180,8 @@ func PostFile(pathFunc func(*gin.Context) string) func(*gin.Context) {
 				return
 			}
 			newFileName := file.Filename
-
-			if err := c.SaveUploadedFile(file, filepath.Join(path, newFileName)); err != nil {
+			err = c.SaveUploadedFile(file, filepath.Join(path, newFileName))
+			if err != nil {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					"message": "Unable to save the file",
 				})
