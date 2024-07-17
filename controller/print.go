@@ -8,8 +8,8 @@ import (
 
 	"github.com/Datosystem/go_api_core/message"
 	"github.com/Datosystem/go_api_core/model"
+	"github.com/Datosystem/gofpdf"
 	"github.com/gin-gonic/gin"
-	"github.com/phpdave11/gofpdf"
 	"gorm.io/gorm"
 )
 

@@ -1,8 +1,8 @@
 package pdf
 
 import (
+	"github.com/Datosystem/gofpdf"
 	"github.com/iancoleman/orderedmap"
-	"github.com/phpdave11/gofpdf"
 )
 
 type Registrable interface {

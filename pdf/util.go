@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/phpdave11/gofpdf"
+	"github.com/Datosystem/gofpdf"
 )
 
 func LoadPngFromUrl(p *gofpdf.Fpdf, registerName, url string, wg *sync.WaitGroup) {

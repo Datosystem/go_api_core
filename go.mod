@@ -5,11 +5,11 @@ go 1.20
 replace gorm.io/gorm => github.com/Datosystem/gorm v1.23.1
 
 require (
+	github.com/Datosystem/gofpdf v1.0.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-gormigrate/gormigrate/v2 v2.1.1
 	github.com/go-playground/validator/v10 v10.15.4
 	github.com/iancoleman/orderedmap v0.3.0
-	github.com/phpdave11/gofpdf v1.4.2
 	golang.org/x/net v0.15.0
 	golang.org/x/text v0.13.0
 	gorm.io/gorm v1.25.7

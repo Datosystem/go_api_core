@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/phpdave11/gofpdf"
+	"github.com/Datosystem/gofpdf"
 	"golang.org/x/net/html"
 )
 
