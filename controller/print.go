@@ -63,10 +63,12 @@ func PrintReadHandler(pathFunc, fileFunc func(*gin.Context) string) gin.HandlerF
 func PrintWriteHandler(printFunc func(*gin.Context) *gofpdf.Fpdf, pathFunc, fileFunc func(*gin.Context) string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		p := printFunc(c)
-		if AbortIfError(c, p.Error()) {
-			return
+		if p != nil {
+			if AbortIfError(c, p.Error()) {
+				return
+			}
+			writePdf(c, p, pathFunc(c), fileFunc(c))
 		}
-		writePdf(c, p, pathFunc(c), fileFunc(c))
 	}
 }
 
