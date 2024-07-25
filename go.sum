@@ -1,6 +1,6 @@
-github.com/Datosystem/gofpdf v1.0.2 h1:9JseeAVq3JfCES041hh7TEZX/kftYrOYvHUkVXpiGuU=
-github.com/Datosystem/gofpdf v1.0.2/go.mod h1:En0BvADBJuo37pet1/AWbcPT00JupR2UaznKXB8r4Ww=
-github.com/Datosystem/gofpdi v1.0.2/go.mod h1:0xaN6PFwEZQAT4YNQ/SYpC2TVeBD+dBZhCPAkB+B0w4=
+github.com/Datosystem/gofpdf v1.0.5 h1:MNKab/uh7xumntm7BGygpQZfjKPFdhjBse/rlkdBFEU=
+github.com/Datosystem/gofpdf v1.0.5/go.mod h1:l1En1d2kRd6QGBB9ywJzE0L19Jbazab3ZCli5MJ3yu0=
+github.com/Datosystem/gofpdi v1.0.4/go.mod h1:0xaN6PFwEZQAT4YNQ/SYpC2TVeBD+dBZhCPAkB+B0w4=
 github.com/Datosystem/gorm v1.23.1 h1:Rks6+rXQzI+VwHGBKJp8M+GG1u19PdZvkPEgiBqPA7Q=
 github.com/Datosystem/gorm v1.23.1/go.mod h1:Fwp23mD6ZlUCZbkJVvw0teIRsJNihB8esia6QlEI6G8=
 github.com/boombuler/barcode v1.0.0/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=

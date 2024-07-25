@@ -2,10 +2,7 @@ module github.com/Datosystem/go_api_core
 
 go 1.20
 
-replace (
-	gorm.io/gorm => github.com/Datosystem/gorm v1.23.1
-	// github.com/Datosystem/gofpdf v1.0.5 => ../gofpdf
-)
+replace gorm.io/gorm => github.com/Datosystem/gorm v1.23.1
 
 require (
 	github.com/Datosystem/gofpdf v1.0.5
