@@ -174,6 +174,13 @@ func CannotCreatePrint(c *gin.Context) Message {
 	}
 }
 
+func MissingBaseResourceSelect(c *gin.Context, baseResource string) Message {
+	return &Msg{
+		Message: GetPrinter(c).Sprintf("Please select at least one element from the base resource %s before accessing nested resources.", baseResource),
+		Status:  http.StatusConflict,
+	}
+}
+
 // 422
 func Unprocessable(c *gin.Context) Message {
 	return &Msg{

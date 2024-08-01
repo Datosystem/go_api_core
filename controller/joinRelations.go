@@ -344,6 +344,10 @@ func GetModelInfo(c *gin.Context, modelSchema *schema.Schema, selects string, mo
 				}
 			}
 		}
+		// Throw an error if base model sel is empty
+		if len(modelInfo.Select) == 0 {
+			return message.MissingBaseResourceSelect(c, modelInfo.Table)
+		}
 	} else {
 		for _, field := range modelSchema.Fields {
 			if field.Readable && len(field.DBName) != 0 {

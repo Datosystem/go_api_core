@@ -16,28 +16,45 @@ func parseParamsV2(c *gin.Context, modelSchema *schema.Schema, alias string, par
 		value, _ := params.Get(key)
 		logicOp := regexp.MustCompile(`^[|]+`).FindString(key)
 		condtionOp := regexp.MustCompile(`[!><%\-=]+$`).FindString(key)
-		if key[len(logicOp):][0] == '>' {
+		if key[len(logicOp):][0] == '>' || strings.Contains(key, ".>") {
+			if !strings.HasPrefix(alias, "NESTED.") {
+				alias = "NESTED"
+			}
 			dotIndex := strings.Index(key, ".")
 			if dotIndex == -1 {
 				return message.InvalidField(c, key)
 			}
 			remainder := logicOp + key[dotIndex+1:]
-			key = key[1+len(logicOp) : dotIndex]
+			isNested := key[len(logicOp):][0] == '>'
+			if isNested {
+				key = key[1+len(logicOp) : dotIndex]
+			} else {
+				key = key[len(logicOp):dotIndex]
+			}
 			rel, ok := modelSchema.Relationships.Relations[key]
 			if !ok {
 				continue
 			}
-			if _, ok := conds.Nested[key]; ok {
-				if conds.Nested[key].Type != "N" {
-					conds.Nested[key].Type = "M"
-				}
-			} else {
-				conds.Nested[key] = &Conditions{Type: "N", Nested: map[string]*Conditions{}}
-			}
 			nested := orderedmap.New()
 			nested.Set(remainder, value)
-			if err := parseParamsV2(c, rel.FieldSchema, "", nested, conds.Nested[key], allowed); err != nil {
-				return err
+			if isNested {
+				if strings.HasPrefix(alias, "NESTED.") {
+					key = strings.TrimPrefix(alias, "NESTED.") + "." + key
+				}
+				if _, ok := conds.Nested[key]; ok {
+					if conds.Nested[key].Type != "N" {
+						conds.Nested[key].Type = "M"
+					}
+				} else {
+					conds.Nested[key] = &Conditions{Type: "N", Nested: map[string]*Conditions{}}
+				}
+				if err := parseParamsV2(c, rel.FieldSchema, "", nested, conds.Nested[key], allowed); err != nil {
+					return err
+				}
+			} else {
+				if err := parseParamsV2(c, rel.FieldSchema, alias+"."+key, nested, conds, allowed); err != nil {
+					return err
+				}
 			}
 		} else if v, ok := value.(orderedmap.OrderedMap); ok {
 			if key[0] == '?' || key[0] == '&' {
