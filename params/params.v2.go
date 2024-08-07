@@ -17,8 +17,9 @@ func parseParamsV2(c *gin.Context, modelSchema *schema.Schema, alias string, par
 		logicOp := regexp.MustCompile(`^[|]+`).FindString(key)
 		condtionOp := regexp.MustCompile(`[!><%\-=]+$`).FindString(key)
 		if key[len(logicOp):][0] == '>' || strings.Contains(key, ".>") {
-			if !strings.HasPrefix(alias, "NESTED.") {
-				alias = "NESTED"
+			prefix := alias
+			if !strings.HasPrefix(prefix, "NESTED.") {
+				prefix = "NESTED"
 			}
 			dotIndex := strings.Index(key, ".")
 			if dotIndex == -1 {
@@ -38,8 +39,8 @@ func parseParamsV2(c *gin.Context, modelSchema *schema.Schema, alias string, par
 			nested := orderedmap.New()
 			nested.Set(remainder, value)
 			if isNested {
-				if strings.HasPrefix(alias, "NESTED.") {
-					key = strings.TrimPrefix(alias, "NESTED.") + "." + key
+				if strings.HasPrefix(prefix, "NESTED.") {
+					key = strings.TrimPrefix(prefix, "NESTED.") + "." + key
 				}
 				if _, ok := conds.Nested[key]; ok {
 					if conds.Nested[key].Type != "N" {
@@ -52,7 +53,7 @@ func parseParamsV2(c *gin.Context, modelSchema *schema.Schema, alias string, par
 					return err
 				}
 			} else {
-				if err := parseParamsV2(c, rel.FieldSchema, alias+"."+key, nested, conds, allowed); err != nil {
+				if err := parseParamsV2(c, rel.FieldSchema, prefix+"."+key, nested, conds, allowed); err != nil {
 					return err
 				}
 			}
