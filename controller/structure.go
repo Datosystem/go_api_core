@@ -117,6 +117,18 @@ func GetStructInfo(c *gin.Context, schem *schema.Schema, relations [][]string) S
 	if updateModel, ok := mdl.(model.UpdateConditionsModel); ok {
 		structInfo.UpdateConditions = updateModel.UpdateConditions()
 	}
+	var hasDisplay bool
+	index := 0
+	i := 0
+	for ; i < len(structInfo.Fields) && !hasDisplay; i++ {
+		if structInfo.Fields[i].Field == "DISPLAY_NAME" {
+			index = i
+		}
+		hasDisplay = structInfo.Fields[i].Descriptive != ""
+	}
+	if !hasDisplay {
+		structInfo.Fields = append(structInfo.Fields[:index], structInfo.Fields[index+1:]...)
+	}
 	return structInfo
 }
 
