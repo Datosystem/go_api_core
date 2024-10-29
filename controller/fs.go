@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"log"
@@ -96,8 +97,17 @@ func GetFile(pathFunc, nameFunc func(*gin.Context) string) func(*gin.Context) {
 			return
 		}
 
-		if c.Query("download") == "" {
+		if c.Query("download") == "" && c.Query("base64") == "" {
 			c.Header("Content-Disposition", "inline; filename="+name)
+		} else if c.Query("base64") != "" {
+			bytebuffer, err := os.ReadFile(file)
+			if err != nil {
+				message.Forbidden(c).Abort(c)
+				return
+			}
+			content := base64.StdEncoding.EncodeToString(bytebuffer)
+			c.Data(http.StatusOK, "application/octet-stream", []byte(content))
+			return
 		} else {
 			c.Header("Content-Description", "File Transfer")
 			c.Header("Content-Transfer-Encoding", "binary")
