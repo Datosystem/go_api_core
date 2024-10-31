@@ -217,8 +217,12 @@ func (t *Table) AddNext(value any, styles ...*Style) *Table {
 
 func (t *Table) AddImage(imageNameStr string) *Table {
 	if info := t.pdf.GetImageInfo(imageNameStr); info != nil {
+		style := t.getStyle()
+		if style.PaddingTop > 0 {
+			t.pdf.SetY(t.pdf.GetY() + style.PaddingTop)
+		}
 		if t.RowHeight() > 0 {
-			height := math.Min(info.Height(), t.RowHeight())
+			height := math.Min(info.Height(), (t.RowHeight() - style.PaddingTop - style.PaddingBottom))
 			width := height * info.Width() / info.Height()
 			if width > t.ColumnSize() {
 				width = t.ColumnSize()
@@ -228,7 +232,7 @@ func (t *Table) AddImage(imageNameStr string) *Table {
 		} else {
 			t.pdf.ImageOptions(imageNameStr, t.columnX(), t.pdf.GetY(), t.ColumnSize(), 0, true, gofpdf.ImageOptions{}, 0, "")
 		}
-		t.row.cells[t.columnIndex].endY = t.pdf.GetY()
+		t.row.cells[t.columnIndex].endY = t.pdf.GetY() + style.PaddingBottom
 	}
 	return t
 }
