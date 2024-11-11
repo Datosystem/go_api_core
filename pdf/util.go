@@ -36,6 +36,10 @@ func Box(p *gofpdf.Fpdf, x, y, w, h float64, styleStr string, checked bool) {
 	}
 }
 
+// Arguments @html string to modify.
+// Replace \n into <br>
 func TextToHTML(text string) string {
-	return strings.ReplaceAll(text, "\n", "<br>")
+	str := strings.ReplaceAll(text, "\n", "<br>")
+	str = strings.ReplaceAll(str, "line-height: normal", "margin-block-start: 11")
+	return str
 }

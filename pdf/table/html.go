@@ -189,7 +189,7 @@ func (t *Table) parseHTMLAttributes(node *html.Node, element *PdfHTMLElement) {
 			for _, s := range styles {
 				pieces := strings.Split(s, ":")
 				val := strings.Join(pieces[1:], ":")
-				switch pieces[0] {
+				switch strings.TrimSpace(pieces[0]) {
 				case "background-color":
 					if strings.HasPrefix(val, "rgb(") {
 						val = val[4 : len(val)-1]
@@ -248,6 +248,12 @@ func (t *Table) parseHTMLAttributes(node *html.Node, element *PdfHTMLElement) {
 					if strings.HasSuffix(val, "px") {
 						element.Style.Size, _ = strconv.ParseFloat(strings.TrimSuffix(val, "px"), 64)
 					}
+				case "line-height":
+					element.Style.Ln, _ = strconv.ParseFloat(val, 64)
+				case "margin-block-start":
+					element.Style.MarginTop, _ = strconv.ParseFloat(strings.TrimSpace(val), 64)
+				case "margin-block-end":
+					element.Style.MarginBottom, _ = strconv.ParseFloat(strings.TrimSpace(val), 64)
 				}
 			}
 		}
