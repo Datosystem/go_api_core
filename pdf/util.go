@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/Datosystem/gofpdf"
@@ -33,4 +34,8 @@ func Box(p *gofpdf.Fpdf, x, y, w, h float64, styleStr string, checked bool) {
 		p.Line(x, y, x+w, y+h)
 		p.Line(x, y+h, x+w, y)
 	}
+}
+
+func TextToHTML(text string) string {
+	return strings.ReplaceAll(text, "\n", "<br>")
 }
