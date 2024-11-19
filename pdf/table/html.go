@@ -2,6 +2,7 @@ package table
 
 import (
 	"log"
+	"math"
 	"strconv"
 	"strings"
 
@@ -44,6 +45,14 @@ func (t *Table) parseHTMLNode(node *html.Node, element *PdfHTMLElement) {
 			t.pdf.SetFontSize(element.Style.Size)
 		}
 		availableWidth := element.Width - element.OffsetX
+		if availableWidth <= 0 {
+			_, fontHeight := t.pdf.GetFontSize()
+			element.Height = fontHeight + element.Style.Ln
+			off := element.OffsetX
+			element.OffsetX = availableWidth + element.Height + 1
+			availableWidth = math.Abs(element.Width - off)
+			element.OffsetY = fontHeight * float64(len(t.pdf.SplitText(node.Data, availableWidth))) / 1.925
+		}
 		lines := t.pdf.SplitText(node.Data, availableWidth)
 		node.Data = ""
 		if len(lines) > 1 {
@@ -134,11 +143,37 @@ func (t *Table) parseChildHTMLNodes(node *html.Node, element *PdfHTMLElement) {
 					case "b", "strong":
 						childElement.Style.inline = true
 						childElement.Style.Format = "B"
+						if element.Style.Format != "-" && !strings.Contains(element.Style.Format, childElement.Style.Format) {
+							childElement.Style.Format += element.Style.Format
+						}
 					case "center":
 						childElement.Style.Align = "C"
 					case "span":
 						childElement.Style.inline = true
-						childElement.Style.Format = "-"
+						if element.Style.Format != "" {
+							childElement.Style.Format = element.Style.Format
+						} else {
+							childElement.Style.Format = "-"
+						}
+					case "p":
+						if element.Style.Format != "" {
+							childElement.Style.Format = element.Style.Format
+						} else {
+							childElement.Style.Format = "-"
+						}
+						childElement.Style.Size = 9
+					case "h1":
+						childNode.Attr = append(childNode.Attr, html.Attribute{Namespace: "test", Key: "style", Val: "font-size: 14px; font-weight: bold; padding: 5 0 5 0 ;"})
+					case "h2":
+						childNode.Attr = append(childNode.Attr, html.Attribute{Namespace: "test", Key: "style", Val: "font-size: 14px; font-weight: bold; padding: 3 0 3 0 ;"})
+					case "h3":
+						childNode.Attr = append(childNode.Attr, html.Attribute{Namespace: "test", Key: "style", Val: "font-size: 12px; font-weight: bold; padding: 2 0 2 0 ;"})
+					case "h4":
+						childNode.Attr = append(childNode.Attr, html.Attribute{Namespace: "test", Key: "style", Val: "font-size: 11px; font-weight: bold; padding: 2.5 0 2.5 0 ;"})
+					case "h5":
+						childNode.Attr = append(childNode.Attr, html.Attribute{Namespace: "test", Key: "style", Val: "font-size: 9px; font-weight: bold; padding: 2 0 2 0 ;"})
+					case "h6":
+						childNode.Attr = append(childNode.Attr, html.Attribute{Namespace: "test", Key: "style", Val: "font-size: 7.5px; font-weight: bold; padding: 2.5 0 2.5 0 ;"})
 					}
 				case html.TextNode:
 					childElement.Data = "text"
@@ -219,7 +254,7 @@ func (t *Table) parseHTMLAttributes(node *html.Node, element *PdfHTMLElement) {
 						}
 					}
 				case "font-weight":
-					switch val {
+					switch strings.TrimSpace(val) {
 					case "bold":
 						element.Style.Format = "B"
 					case "normal":
@@ -235,7 +270,7 @@ func (t *Table) parseHTMLAttributes(node *html.Node, element *PdfHTMLElement) {
 					}
 					element.Style.Padding(padding...)
 				case "text-align":
-					switch val {
+					switch strings.TrimSpace(val) {
 					case "left":
 						element.Style.Align = "L"
 					case "center":
@@ -248,12 +283,20 @@ func (t *Table) parseHTMLAttributes(node *html.Node, element *PdfHTMLElement) {
 					if strings.HasSuffix(val, "px") {
 						element.Style.Size, _ = strconv.ParseFloat(strings.TrimSuffix(val, "px"), 64)
 					}
+					if strings.HasSuffix(val, "pt") {
+						element.Style.Size, _ = strconv.ParseFloat(strings.TrimSuffix(val, "pt"), 64)
+					}
 				case "line-height":
 					element.Style.Ln, _ = strconv.ParseFloat(val, 64)
-				case "margin-block-start":
-					element.Style.MarginTop, _ = strconv.ParseFloat(strings.TrimSpace(val), 64)
-				case "margin-block-end":
-					element.Style.MarginBottom, _ = strconv.ParseFloat(strings.TrimSpace(val), 64)
+				case "text-decoration":
+					switch strings.TrimSpace(val) {
+					case "underline":
+						if element.Style.Format != "-" {
+							element.Style.Format += "U"
+						} else {
+							element.Style.Format = "U"
+						}
+					}
 				}
 			}
 		}

@@ -293,6 +293,9 @@ func (t *Table) addHTMLElement(element *PdfHTMLElement) (newPage bool) {
 	t.afterPageBreak = func() {
 		// TODO: Rimuovere la Y dell'header della pagina successiva
 		newPage = true
+		_, _, mr, _ := t.pdf.GetMargins()
+		wd, _, _ := t.pdf.PageSize(t.pdf.PageNo())
+		t.pdf.Line(mr, t.pdf.GetY(), wd-mr, t.pdf.GetY())
 	}
 	if element.Data == "text" {
 		if element.Text != "" {
@@ -310,7 +313,9 @@ func (t *Table) addHTMLElement(element *PdfHTMLElement) (newPage bool) {
 				t.pdf.SetFontSize(element.Style.Size)
 			}
 
-			t.pdf.SetXY(element.OffsetX, element.OffsetY)
+			//t.pdf.SetXY(element.OffsetX, element.OffsetY)
+			t.pdf.SetXY(element.OffsetX, element.OffsetY+element.Style.Ln)
+
 			t.row.cells[t.columnIndex].endX = element.OffsetX
 
 			t.pdf.CellFormat(element.Width+(t.pdf.GetCellMargin()*2), fontHeight+element.Style.Ln, element.Text, "", 0, "", false, 0, "")
