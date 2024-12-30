@@ -44,7 +44,10 @@ func (t *Table) parseHTMLNode(node *html.Node, element *PdfHTMLElement) {
 		if element.Style.Size > 0 {
 			t.pdf.SetFontSize(element.Style.Size)
 		}
-		availableWidth := element.Width - element.OffsetX
+		availableWidth := element.Width
+		if element.OffsetX > 0 {
+			availableWidth -= element.OffsetX
+		}
 		if availableWidth <= 0 {
 			_, fontHeight := t.pdf.GetFontSize()
 			element.Height = fontHeight + element.Style.Ln
