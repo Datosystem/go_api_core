@@ -155,7 +155,7 @@ func MissingRequiredParameter(c *gin.Context, name, in string) Message {
 
 func MissingRequiredParameterForQueryField(c *gin.Context, name, field string) Message {
 	return &Msg{
-		Message: GetPrinter(c).Sprintf("Missing required parameter %s in query (eg. &%s=3) for query field %s", name, field),
+		Message: GetPrinter(c).Sprintf("Missing required parameter %s in query (eg. &%s=3) for query field %s", name, name, field),
 		Status:  http.StatusConflict,
 	}
 }
