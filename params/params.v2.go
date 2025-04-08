@@ -49,7 +49,7 @@ func parseParamsV2(c *gin.Context, modelSchema *schema.Schema, alias string, par
 				} else {
 					conds.Nested[key] = &Conditions{Type: "N", Nested: map[string]*Conditions{}}
 				}
-				if err := parseParamsV2(c, rel.FieldSchema, "", nested, conds.Nested[key], allowed); err != nil {
+				if err := parseParamsV2(c, rel.FieldSchema, "ORIGIN", nested, conds.Nested[key], allowed); err != nil {
 					return err
 				}
 			} else {
