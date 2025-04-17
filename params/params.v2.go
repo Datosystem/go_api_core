@@ -76,6 +76,7 @@ func parseParamsV2(c *gin.Context, modelSchema *schema.Schema, alias string, par
 					}
 				}
 			} else if len(v.Keys()) > 0 {
+				l := len(conds.Query)
 				addLogicOperator(logicOp, &(*conds).Query)
 				if strings.Contains(condtionOp, "!") {
 					conds.Query += " NOT"
@@ -84,7 +85,12 @@ func parseParamsV2(c *gin.Context, modelSchema *schema.Schema, alias string, par
 				if err := parseParamsV2(c, modelSchema, alias, &v, conds, allowed); err != nil {
 					return err
 				}
-				conds.Query += "\n)"
+				if strings.HasSuffix(conds.Query, "(\n") {
+					// Se non ho condizioni nidificate, rimuove la parentesi e l'operatore logico
+					conds.Query = conds.Query[:l]
+				} else {
+					conds.Query += "\n)"
+				}
 			}
 		} else {
 			addLogicOperator(logicOp, &(*conds).Query)
