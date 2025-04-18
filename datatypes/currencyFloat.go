@@ -1,11 +1,12 @@
 package datatypes
 
-import "math"
+import (
+	"fmt"
+)
 
-type CurrencyFloat float32
+type CurrencyFloat string
 
 func (c *CurrencyFloat) Scan(value interface{}) (err error) {
-	f := value.(float64)
-	*c = CurrencyFloat(math.Round(f*100) / 100)
+	*c = CurrencyFloat(fmt.Sprintf("%.2f", value))
 	return
 }
