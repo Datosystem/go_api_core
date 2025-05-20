@@ -292,7 +292,7 @@ func WriteDataWithCount(c *gin.Context, pagStart, pagEnd string, data any, count
 			c.Status(http.StatusOK)
 
 			var csvData [][]string
-			v := reflect.ValueOf(data).Elem()
+			v := reflect.Indirect(reflect.ValueOf(data))
 			t := v.Type()
 			if t.Kind() != reflect.Slice {
 				t = reflect.SliceOf(t)
@@ -314,7 +314,7 @@ func WriteDataWithCount(c *gin.Context, pagStart, pagEnd string, data any, count
 				csvData = append(csvData, row)
 
 				for i := 0; i < l; i++ {
-					item := v.Index(i).Elem()
+					item := reflect.Indirect(v.Index(i))
 					ti := item.Type()
 					var row []string
 					for j := 0; j < ti.NumField(); j++ {
