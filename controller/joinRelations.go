@@ -373,7 +373,7 @@ func ParseOrder(c *gin.Context, order string, info *ModelInfo) message.Message {
 	if len(order) > 0 {
 		local := []string{}
 		nested := map[string][]string{}
-		fields := strings.Split(order, ",")
+		fields := splitRespectingParentheses(order)
 		for i, field := range fields {
 			field = strings.TrimSpace(field)
 			if strings.HasPrefix(field, ">") {
@@ -396,6 +396,11 @@ func ParseOrder(c *gin.Context, order string, info *ModelInfo) message.Message {
 							field = field[:pos] + fields[i-1][:index] + field[pos+1:]
 						}
 					}
+				}
+
+				if isSQLFunction(field) {
+					local = append(local, field)
+					continue
 				}
 
 				relSchema := info.Schema
@@ -492,6 +497,61 @@ func ParseOrder(c *gin.Context, order string, info *ModelInfo) message.Message {
 		info.Order = strings.Join(local, ",")
 	}
 	return nil
+}
+
+func isSQLFunction(field string) bool {
+	sqlFunctions := []string{
+		"COALESCE(",
+		"CONVERT(",
+		"CAST(",
+		"ISNULL(",
+		"CONCAT(",
+		"SUBSTRING(",
+		"LEN(",
+		"DATEDIFF(",
+	}
+
+	fieldUpper := strings.ToUpper(strings.TrimSpace(field))
+
+	for _, fn := range sqlFunctions {
+		if strings.HasPrefix(fieldUpper, fn) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func splitRespectingParentheses(s string) []string {
+	var result []string
+	var current strings.Builder
+	parenthesesCount := 0
+
+	for _, char := range s {
+		switch char {
+		case '(':
+			parenthesesCount++
+			current.WriteRune(char)
+		case ')':
+			parenthesesCount--
+			current.WriteRune(char)
+		case ',':
+			if parenthesesCount == 0 {
+				result = append(result, strings.TrimSpace(current.String()))
+				current.Reset()
+			} else {
+				current.WriteRune(char)
+			}
+		default:
+			current.WriteRune(char)
+		}
+	}
+
+	if current.Len() > 0 {
+		result = append(result, strings.TrimSpace(current.String()))
+	}
+
+	return result
 }
 
 func CreateModel(c *gin.Context, info *ModelInfo, slice bool) (reflect.Type, message.Message) {
