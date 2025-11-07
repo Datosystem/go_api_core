@@ -46,6 +46,8 @@ func Register(container *gin.RouterGroup, toRegister string, r CRUDSController) 
 			}
 		}
 		if strings.Contains(toRegister, "U") && len(primaryFields) > 0 {
+			r.AddRoute(http.MethodPut, params, model.PermissionsPatch(r.GetModel()), r.Put)
+			r.AddRoute(http.MethodPut, "", model.PermissionsPatch(r.GetModel()), r.PutMany)
 			r.AddRoute(http.MethodPatch, params, model.PermissionsPatch(r.GetModel()), r.Patch)
 			r.AddRoute(http.MethodPatch, "", model.PermissionsPatch(r.GetModel()), r.PatchMany)
 		}

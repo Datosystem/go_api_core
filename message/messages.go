@@ -36,6 +36,12 @@ func InvalidUrlParameter(c *gin.Context, parameter string) Message {
 		Status:  http.StatusBadRequest,
 	}
 }
+func BadRequest(c *gin.Context) Message {
+	return &Msg{
+		Message: GetPrinter(c).Sprintf("Richiesta non valida"),
+		Status:  http.StatusBadRequest,
+	}
+}
 
 // 403
 func Forbidden(c *gin.Context) Message {

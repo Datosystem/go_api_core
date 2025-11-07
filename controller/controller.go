@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -51,6 +52,8 @@ type CRUDSController interface {
 	Post(c *gin.Context)
 	Patch(c *gin.Context)
 	PatchMany(c *gin.Context)
+	Put(c *gin.Context)
+	PutMany(c *gin.Context)
 	Delete(c *gin.Context)
 
 	CanImport() bool
@@ -497,6 +500,132 @@ func (r Controller) PatchMany(c *gin.Context) {
 
 			return nil
 		})
+	}
+
+	c.JSON(http.StatusOK, modelSlice)
+}
+
+func buildPKConds(db *gorm.DB, model any, primaryFields []string) (map[string]interface{}, *schema.Schema, error) {
+	modelSchema, err := schema.Parse(model, &sync.Map{}, db.NamingStrategy)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	conds := map[string]interface{}{}
+	mv := reflect.Indirect(reflect.ValueOf(model))
+	for _, f := range primaryFields {
+		field := mv.FieldByName(f)
+		if !field.IsValid() || field.IsZero() {
+			return nil, modelSchema, errors.New("missing primary key: " + f)
+		}
+		sf, ok := modelSchema.FieldsByName[f]
+		if !ok {
+			return nil, modelSchema, errors.New("primary key not found in schema: " + f)
+		}
+		conds[sf.DBName] = field.Interface()
+	}
+	return conds, modelSchema, nil
+}
+
+func (r Controller) Put(c *gin.Context) {
+	model := r.NewModel()
+	jsonMap := make(map[string]interface{})
+	jsonData, _ := c.GetRawData()
+
+	modelType := r.GetModelType()
+	primaryFields := GetPrimaryFields(modelType)
+
+	LoadModel(c, jsonData, model)
+	if c.IsAborted() {
+		return
+	}
+
+	GetPathParams(c, model, primaryFields, model)
+	if c.IsAborted() {
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+	conds, _, err := buildPKConds(db, model, primaryFields)
+	if err != nil {
+		message.BadRequest(c).Text(err.Error()).Abort(c)
+		return
+	}
+	if err := db.Where(conds).First(model).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			message.ItemNotFound(c).Abort(c)
+		} else {
+			message.InternalServerError(c).Text(err.Error()).Abort(c)
+		}
+		return
+	}
+
+	LoadAndValidateMap(c, jsonData, jsonMap, modelType)
+	if c.IsAborted() {
+		return
+	}
+
+	GetPathParams(c, model, primaryFields, &jsonMap)
+	if c.IsAborted() {
+		return
+	}
+
+	UpdateToDb(c, model, jsonMap)
+}
+
+func (r Controller) PutMany(c *gin.Context) {
+	modelSlice := r.NewSliceOfModel()
+	jsonMaps := []map[string]interface{}{}
+	jsonData, _ := c.GetRawData()
+
+	modelType := r.GetModelType()
+	primaryFields := GetPrimaryFields(modelType)
+
+	LoadModel(c, jsonData, modelSlice)
+	if c.IsAborted() {
+		return
+	}
+
+	LoadAndValidateMaps(c, jsonData, &jsonMaps, modelType)
+	ValidateMapsPrimaries(c, jsonMaps, primaryFields)
+	if c.IsAborted() {
+		return
+	}
+	if len(jsonMaps) == 0 {
+		c.JSON(http.StatusOK, modelSlice)
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB).Session(&gorm.Session{CreateBatchSize: 50})
+	modelSliceVal := reflect.Indirect(reflect.ValueOf(modelSlice))
+
+	for i := 0; i < modelSliceVal.Len(); i++ {
+		elemPtr := modelSliceVal.Index(i).Addr().Interface()
+
+		GetPathParams(c, elemPtr, primaryFields, &jsonMaps[i])
+		if c.IsAborted() {
+			return
+		}
+
+		conds, _, err := buildPKConds(db, elemPtr, primaryFields)
+		if err != nil {
+			message.BadRequest(c).Text(err.Error()).Abort(c)
+			return
+		}
+
+		if err := db.Where(conds).First(elemPtr).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				message.ItemNotFound(c).Abort(c)
+			} else {
+				message.InternalServerError(c).Text(err.Error()).Abort(c)
+			}
+			return
+		}
+
+		UpdateToDb(c, elemPtr, jsonMaps[i])
+		if c.IsAborted() {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, modelSlice)
