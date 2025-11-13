@@ -1,6 +1,7 @@
 package params
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -120,9 +121,30 @@ func addLogicOperator(ops string, stmt *string) {
 }
 
 func addCondition(c *gin.Context, modelSchema *schema.Schema, alias, ops string, key string, value interface{}, conds *Conditions, relations map[string]*Conditions) message.Message {
+	var arrayNull bool
 	if field, args, typ := parseFieldV2(c, modelSchema, alias, key, relations); typ != nil {
-		conds.Query += " " + field
-		conds.Args = append(conds.Args, args...)
+		var operator string
+		if value != nil {
+			str := fmt.Sprintf("%v", value)
+			if strings.Contains(str, "[<nil>") {
+				arrayNull = true
+				if slice, ok := value.([]interface{}); ok {
+					value = slice[1:]
+				}
+			}
+		}
+		if arrayNull {
+			conds.Query += " (\n" + field
+			operator = " IS"
+			if strings.Contains(ops, "!") {
+				operator += " NOT"
+			}
+			operator += " NULL"
+			conds.Query += operator + " OR " + field
+		} else {
+			conds.Query += " " + field
+			conds.Args = append(conds.Args, args...)
+		}
 	} else {
 		return message.InvalidField(c, key)
 	}
@@ -194,6 +216,9 @@ func addCondition(c *gin.Context, modelSchema *schema.Schema, alias, ops string,
 	}
 
 	conds.Query += operator
+	if arrayNull {
+		conds.Query += ")"
+	}
 	return nil
 }
 
