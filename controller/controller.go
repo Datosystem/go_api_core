@@ -205,7 +205,7 @@ func WriteQueryMapResult(c *gin.Context, args *QueryMapArgs) {
 									if c.GetHeader("Only-Date") == "" {
 										loc, _ := time.LoadLocation(tmz)
 										if loc == nil {
-											loc, _ = time.LoadLocation("Europe/Rome")
+											loc = time.UTC
 										}
 										row = append(row, time.Time(datetime).In(loc).Format("02/01/2006 15:04"))
 									} else {
