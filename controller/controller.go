@@ -169,6 +169,10 @@ func WriteQueryMapResult(c *gin.Context, args *QueryMapArgs) {
 
 			var csvData [][]string
 			tmz := c.Request.Header.Get("Timezone")
+			loc, _ := time.LoadLocation(tmz)
+			if loc == nil {
+				loc = time.UTC
+			}
 			var heading []string
 			for _, f := range args.Info.Fields {
 				heading = append(heading, f.Name)
@@ -203,13 +207,9 @@ func WriteQueryMapResult(c *gin.Context, args *QueryMapArgs) {
 									row = append(row, time.Time(date).Format("02/01/2006"))
 								} else if datetime, ok := f.(datatypes.Datetime); ok {
 									if c.GetHeader("Only-Date") == "" {
-										loc, _ := time.LoadLocation(tmz)
-										if loc == nil {
-											loc = time.UTC
-										}
 										row = append(row, time.Time(datetime).In(loc).Format("02/01/2006 15:04"))
 									} else {
-										row = append(row, time.Time(datetime).Format("02/01/2006"))
+										row = append(row, time.Time(datetime).In(loc).Format("02/01/2006"))
 									}
 								} else if _, ok := f.(datatypes.RoundedFloat); ok {
 									row = append(row, strings.ReplaceAll(fmt.Sprint(f), ".", ","))
